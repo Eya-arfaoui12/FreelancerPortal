@@ -4,6 +4,5 @@ sentence-transformers
 torch
 transformers
 pydantic
-# optional if you use Mongo fetch
 pymongo
 bson
