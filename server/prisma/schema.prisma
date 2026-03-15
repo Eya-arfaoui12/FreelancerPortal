@@ -1,0 +1,451 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String   @unique
+  password   String
+  firstName  String
+  lastName   String
+  role       Role     @default(FREELANCER)
+  avatar     String?
+  phone      String?
+  location   String?
+  isActive   Boolean  @default(true)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  freelancerProfile   FreelancerProfile?
+  sentMessages        Message[]          @relation("MessageSender")
+  receivedMessages    Message[]          @relation("MessageReceiver")
+  notifications       Notification[]
+  createdContracts    Contract[]         @relation("ContractCreator")
+  clientContracts     Contract[]         @relation("ContractClient")
+  projects            Project[]
+  userConversations   Conversation[]     @relation("ConversationUser")
+  targetConversations Conversation[]     @relation("ConversationTarget")
+  clientMissions      Mission[]          @relation("MissionClient")
+  reviewsReceived     Review[]           @relation("ReviewsReceived") // avis reçus par le freelancer
+  reviewsGiven        Review[]           @relation("ReviewsGiven") // avis laissés par le client
+
+  @@map("users")
+}
+
+model FreelancerProfile {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String       @unique @db.ObjectId
+  title             String
+  description       String?
+  hourlyRate        Float
+  experience        Int
+  skills            String[]
+  availability      Availability @default(AVAILABLE)
+  languages         String[]
+  education         Json[]
+  certifications    String[]
+  rating            Float        @default(0)
+  reviewCount       Int          @default(0)
+  portfolioUrl      String?
+  linkedinUrl       String?
+  githubUrl         String?
+  bio               String?
+  projectsCompleted Int          @default(0)
+  memberSince       DateTime     @default(now())
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Relations
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  proposals   Proposal[]
+  contracts   Contract[]
+  experiences Json[]
+  missions    Mission[]
+  projects    FreelancerProject[] // Added relation
+
+  @@map("freelancer_profiles")
+}
+
+model FreelancerProject {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  freelancerId String   @db.ObjectId
+  projectId    String   @db.ObjectId
+  assignedAt   DateTime @default(now())
+
+  // Relations
+  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([freelancerId, projectId])
+  @@map("freelancer_projects")
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  freelancerId String @db.ObjectId
+  freelancer   User   @relation("ReviewsReceived", fields: [freelancerId], references: [id])
+
+  clientId String @db.ObjectId
+  client   User   @relation("ReviewsGiven", fields: [clientId], references: [id])
+}
+
+model Project {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  requirements String[]
+  budget       Float?
+  duration     Int?
+  status       ProjectStatus @default(DRAFT)
+  skills       String[]
+  createdById  String        @db.ObjectId
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deadline     DateTime?
+
+  // Relations
+  createdBy   User                @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  proposals   Proposal[]
+  contracts   Contract[]
+  attachments ProjectAttachment[]
+  milestones  Milestone[]
+  missions    Mission[]
+  freelancers FreelancerProject[] // Added relation
+
+  @@map("projects")
+}
+
+model Proposal {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  coverLetter   String
+  bidAmount     Float
+  estimatedTime Int // en jours
+  status        ProposalStatus @default(PENDING)
+  submittedAt   DateTime       @default(now())
+  freelancerId  String         @db.ObjectId
+  projectId     String         @db.ObjectId
+
+  // Relations
+  freelancer FreelancerProfile @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([freelancerId, projectId])
+  @@map("proposals")
+}
+
+model Contract {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  startDate     DateTime
+  endDate       DateTime?
+  rate          Float
+  paymentType   PaymentType
+  status        ContractStatus @default(DRAFT)
+  terms         String?
+  clientName    String
+  clientAddress String
+  clientEmail   String
+  freelancerId  String         @db.ObjectId
+  projectId     String         @db.ObjectId
+  createdById   String         @db.ObjectId
+  clientUserId  String?        @db.ObjectId
+  templateId    String?        @db.ObjectId
+  clientSignature String?   // URL ou chemin de l'image de la signature du client
+  freelancerSignature String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  freelancer  FreelancerProfile    @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  project     Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User                 @relation("ContractCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  client      User?                @relation("ContractClient", fields: [clientUserId], references: [id], onDelete: Cascade)
+  template    ContractTemplate?    @relation("ContractTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  milestones  Milestone[]
+  attachments ContractAttachment[]
+  missions    Mission[]
+
+  @@map("contracts")
+}
+
+model ContractTemplate {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  description     String
+  type            String // "fixed", "hourly", "retainer"
+  paymentSchedule String // "one-time", "monthly", "milestone"
+  defaultTerms    String
+  features        String[]
+  pdfTitle        String
+  icon            String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  contracts       Contract[] @relation("ContractTemplate")
+
+  @@map("contract_templates")
+}
+
+model Milestone {
+  id          String          @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  amount      Float
+  dueDate     DateTime
+  status      MilestoneStatus @default(PENDING)
+  contractId  String          @db.ObjectId
+  projectId   String?         @db.ObjectId
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  project  Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("milestones")
+}
+
+model Mission {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  description  String
+  status       MissionStatus @default(PENDING)
+  progress     Int           @default(0) // 0-100%
+  priority     Priority      @default(MEDIUM)
+  deadline     DateTime
+  budget       Float
+  hoursSpent   Float         @default(0)
+  totalHours   Float
+  startDate    DateTime?
+  technologies String[]
+  freelancerId String        @db.ObjectId
+  clientId     String        @db.ObjectId
+  projectId    String?       @db.ObjectId
+  contractId   String?       @db.ObjectId
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  freelancer  FreelancerProfile   @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  client      User                @relation("MissionClient", fields: [clientId], references: [id], onDelete: Cascade)
+  project     Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contract    Contract?           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  attachments MissionAttachment[]
+  milestones  MissionMilestone[]
+
+  @@map("missions")
+}
+
+model MissionMilestone {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  completed Boolean  @default(false)
+  dueDate   DateTime
+  missionId String   @db.ObjectId
+
+  // Relations
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@map("mission_milestones")
+}
+
+model Message {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  content        String
+  senderId       String   @db.ObjectId
+  receiverId     String   @db.ObjectId
+  conversationId String?  @db.ObjectId
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  // Relations
+  sender       User          @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver     User          @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Conversation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  targetId    String   @db.ObjectId
+  lastMessage String?
+  unread      Int      @default(0)
+  isSupport   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user     User      @relation("ConversationUser", fields: [userId], references: [id], onDelete: Cascade)
+  target   User      @relation("ConversationTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([userId, targetId])
+  @@map("conversations")
+}
+
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  metadata  String? // ← Champ pour stocker des données supplémentaires
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ProjectAttachment {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  name                 String
+  size                 String
+  type                 String
+  url                  String
+  projectId            String   @db.ObjectId
+  isContract           Boolean  @default(false)  // New field to identify contracts
+  freelancerSignature String?  // Base64 signature data
+  clientSignature     String?  // Base64 signature data (for future use)
+  freelancerName      String?  // Nouveau champ
+  signatureDate       String?
+  signedAt            DateTime?  // When the freelancer signed
+  createdAt           DateTime @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_attachments")
+}
+
+model ContractAttachment {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  size       String
+  type       String
+  url        String
+  contractId String   @db.ObjectId
+  createdAt  DateTime @default(now())
+
+  // Relations
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@map("contract_attachments")
+}
+
+model MissionAttachment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  size      String
+  type      String
+  url       String
+  missionId String   @db.ObjectId
+  createdAt DateTime @default(now())
+
+  // Relations
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@map("mission_attachments")
+}
+
+model Skill {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  name     String @unique
+  category String
+
+  @@map("skills")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  FREELANCER
+}
+
+enum Availability {
+  AVAILABLE
+  BUSY
+  UNAVAILABLE
+}
+
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ProposalStatus {
+  PENDING
+  VIEWED // 
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentType {
+  HOURLY
+  FIXED
+  MILESTONE
+  MONTHLY_RETAINER
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  EXPIRED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  APPROVED
+  REJECTED
+}
+
+enum MissionStatus {
+  DRAFT
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+  MESSAGE
+  PROPOSAL
+  CONTRACT
+  MISSION
+}

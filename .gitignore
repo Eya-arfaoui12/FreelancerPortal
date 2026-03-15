@@ -1,0 +1,23 @@
+# ===== CLIENT =====
+client/node_modules/
+client/dist/
+
+# ===== SERVER =====
+server/node_modules/
+server/uploads/
+
+# ===== IA-MATCHING =====
+ia-matching/venv/
+ia-matching/__pycache__/
+ia-matching/models/
+ia-matching/*.pyc
+
+# ===== VARIABLES D'ENVIRONNEMENT =====
+.env
+client/.env
+server/.env
+ia-matching/.env
+
+# ===== DIVERS =====
+.DS_Store
+*.log
