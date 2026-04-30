@@ -17,6 +17,8 @@ ia-matching/*.pyc
 client/.env
 server/.env
 ia-matching/.env
+.env.local
+.env.production
 
 # ===== DIVERS =====
 .DS_Store

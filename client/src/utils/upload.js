@@ -3,11 +3,11 @@ import axios from "axios";
 export const uploadToCloudinary = async (file) => {
   const data = new FormData();
   data.append("file", file);
-  data.append("upload_preset", "freelacer_portal"); //preset exact
+  data.append("upload_preset", import.meta.env.VITE_CLOUDINARY_PRESET); 
   
   try {
     const res = await axios.post(
-      "https://api.cloudinary.com/v1_1/dhja77zhk/image/upload", // cloud name
+      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
       data
     );
     

@@ -84,7 +84,8 @@ export default function SignUpForm() {
         setUploading(false);
       }
 
-      const response = await fetch("http://localhost:5000/api/auth/register", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -119,9 +120,8 @@ export default function SignUpForm() {
     }
   };
 
-  const handleOAuthSignUp = (provider) => {
-    window.location.href = `http://localhost:5000/api/auth/${provider}`;
-  };
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  window.location.href = `${API_URL}/auth/${provider}`;
 
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">
