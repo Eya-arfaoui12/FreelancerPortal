@@ -156,13 +156,3 @@ From `server/`:
 ## Matching Service
 
 The service exposes `POST /match`, which accepts a project and a list of freelancer profiles and returns ranked matches with score breakdowns. It also exposes `GET /health` for health checks. The `paraphrase-multilingual-mpnet-base-v2` model is loaded at startup and may be downloaded on the first run, so an initial network connection and sufficient resources for PyTorch are required.
-
-## Security and Configuration
-
-- Never publish `.env` files, JWT secrets, MongoDB credentials, or internal service tokens.
-- In production, configure allowed origins, service URLs, and all secrets for your hosting environment.
-- The matching service's default token is for development only. Set `INTERNAL_SERVICE_TOKEN` in both services before using matching.
-
-## License
-
-The `client/` directory contains an MIT license attributed to TailAdmin. Review its scope and the licenses of all third-party dependencies and assets before reuse or redistribution. Add a root-level license if you want to define licensing terms for your own project; do not assume the client license automatically covers the entire repository.
