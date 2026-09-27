@@ -1,5 +1,7 @@
 # Freelancer Portal
 
+<img width="1497" height="722" alt="home1" src="https://github.com/user-attachments/assets/22df64dc-d133-4397-9a54-c5d8f2b0d06c" />
+
 Freelancer Portal is a web-based project management platform that connects project requirements with suitable freelance profiles. It brings project, profile, proposal, mission, contract, and user communication workflows together in one application.
 
 ## Features
